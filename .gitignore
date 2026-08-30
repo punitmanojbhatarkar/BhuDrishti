@@ -1,0 +1,11 @@
+﻿node_modules/
+.next/
+__pycache__/
+*.pyc
+.env
+.env.local
+venv/
+env/
+
+gee_key.json
+test_*.py
