@@ -4,3 +4,6 @@ pydantic
 pystac-client
 requests
 python-dotenv
+earthengine-api
+google-generativeai
+openai
