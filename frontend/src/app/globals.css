@@ -268,7 +268,64 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-deep); color: 
   backdrop-filter: blur(10px);
 }
 .map-tool:hover { border-color: var(--border-glow); color: var(--accent); }
-.map-tool.active { background: rgba(56,189,248,0.15); border-color: var(--accent); color: var(--accent); }
+.map-tool.active {
+  background: rgba(39, 103, 73, 0.2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Responsive Panels ── */
+.chat-panel-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  bottom: 36px;
+  width: 400px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-mid);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-lg);
+  z-index: 1500;
+}
+.info-panel-container {
+  position: absolute;
+  top: 52px;
+  left: 10px;
+  bottom: 36px;
+  width: 260px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-mid);
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-lg);
+  z-index: 1500;
+}
+
+@media (max-width: 768px) {
+  .chat-panel-container {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    height: 55%;
+    border-radius: 20px 20px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+  .info-panel-container {
+    display: none;
+  }
+}
+
 
 /* ── Status badge ── */
 .status-live { display:flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.25); }

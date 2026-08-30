@@ -190,23 +190,7 @@ export default function HomePage() {
 
         {/* ── Floating Chat Panel (right side) ── */}
         {chatOpen && (
-          <div
-            className="panel-in"
-            style={{
-              position: "absolute",
-              top: 10, right: 10, bottom: 36,
-              width: 400,
-              background: "var(--bg-panel)",
-              border: "1px solid var(--border-mid)",
-              borderRadius: 16,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              backdropFilter: "blur(24px)",
-              boxShadow: "var(--shadow-lg)",
-              zIndex: 1500,
-            }}
-          >
+          <div className="panel-in chat-panel-container">
             <ChatPanel
               onImageUpdate={handleImageUpdate}
               onStatsUpdate={handleStatsUpdate}
@@ -217,21 +201,7 @@ export default function HomePage() {
 
         {/* ── Floating Info Panel (left side) ── */}
         {infoOpen && (
-          <div
-            className="panel-in"
-            style={{
-              position: "absolute",
-              top: 52, left: 10, bottom: 36,
-              width: 260,
-              background: "var(--bg-panel)",
-              border: "1px solid var(--border-mid)",
-              borderRadius: 16,
-              overflow: "hidden",
-              backdropFilter: "blur(24px)",
-              boxShadow: "var(--shadow-lg)",
-              zIndex: 1500,
-            }}
-          >
+          <div className="panel-in info-panel-container">
             <div style={{ padding: "14px 14px 0", borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
                 <Database size={13} color="var(--accent)" />
