@@ -194,8 +194,22 @@ export default function MapPanel({ imageUrl, geeTileUrl, bbox, centerLat, center
     }
   }, [showWeather, cesiumReady]);
 
+  // Effect to fly to the bounding box
   useEffect(() => {
-    if (!viewerRef.current || !cesiumReady || !geeTileUrl || !bbox) return;
+    if (!viewerRef.current || !cesiumReady || !bbox) return;
+    const Cesium = (window as any).Cesium;
+    const viewer = viewerRef.current;
+    
+    const [minLon, minLat, maxLon, maxLat] = bbox;
+    viewer.camera.flyTo({
+      destination: Cesium.Rectangle.fromDegrees(minLon, minLat, maxLon, maxLat),
+      duration: 1.5
+    });
+  }, [bbox, cesiumReady]);
+
+  // Effect to apply the GEE Tile overlay (if available)
+  useEffect(() => {
+    if (!viewerRef.current || !cesiumReady || !geeTileUrl) return;
     const Cesium = (window as any).Cesium;
     const viewer = viewerRef.current;
 
@@ -211,13 +225,7 @@ export default function MapPanel({ imageUrl, geeTileUrl, bbox, centerLat, center
 
     overlayRef.current = viewer.scene.imageryLayers.addImageryProvider(provider);
     overlayRef.current.alpha = overlayVisible ? 0.85 : 0.0;
-
-    const [minLon, minLat, maxLon, maxLat] = bbox;
-    viewer.camera.flyTo({
-      destination: Cesium.Rectangle.fromDegrees(minLon, minLat, maxLon, maxLat),
-      duration: 1.5
-    });
-  }, [geeTileUrl, bbox, cesiumReady]);
+  }, [geeTileUrl, cesiumReady, overlayVisible]);
 
   const toggleOverlay = useCallback(() => {
     if (overlayRef.current) {
