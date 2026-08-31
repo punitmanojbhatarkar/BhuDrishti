@@ -5,18 +5,21 @@ import json
 
 # Initialize Earth Engine with the service account
 try:
-    with open('gee_key.json', 'r') as f:
-        key_data = json.load(f)
+    if os.environ.get('GEE_KEY_JSON'):
+        # On Render, read from Environment Variable
+        key_data = json.loads(os.environ.get('GEE_KEY_JSON'))
         client_email = key_data.get('client_email')
+        # ServiceAccountCredentials expects a file or a dictionary
+        credentials = ee.ServiceAccountCredentials(client_email, key_data=key_data)
+    else:
+        # Locally, read from the file
+        with open('gee_key.json', 'r') as f:
+            key_data = json.load(f)
+            client_email = key_data.get('client_email')
+        credentials = ee.ServiceAccountCredentials(client_email, 'gee_key.json')
         
-    credentials = ee.ServiceAccountCredentials(
-        client_email, 
-        'gee_key.json'
-    )
     ee.Initialize(credentials)
     print("Earth Engine Initialized Successfully!")
-except FileNotFoundError:
-    print("Earth Engine init failed: gee_key.json not found in backend folder.")
 except Exception as e:
     print(f"Earth Engine init failed: {e}")
 
@@ -26,8 +29,10 @@ def calculate_real_ndvi(bbox, geojson=None):
     bbox format: [min_lon, min_lat, max_lon, max_lat]
     """
     try:
-        if geojson:
+        if geojson and 'geometry' in geojson:
             geometry = ee.Geometry(geojson['geometry'])
+        elif geojson and 'features' in geojson and len(geojson['features']) > 0:
+            geometry = ee.Geometry(geojson['features'][0]['geometry'])
         else:
             geometry = ee.Geometry.Rectangle(bbox)
         
@@ -64,8 +69,10 @@ def calculate_water_area(bbox, geojson=None):
     Calculates total water/flooded area in sq km using Sentinel-1 SAR.
     """
     try:
-        if geojson:
+        if geojson and 'geometry' in geojson:
             geometry = ee.Geometry(geojson['geometry'])
+        elif geojson and 'features' in geojson and len(geojson['features']) > 0:
+            geometry = ee.Geometry(geojson['features'][0]['geometry'])
         else:
             geometry = ee.Geometry.Rectangle(bbox)
         
@@ -81,9 +88,16 @@ def calculate_water_area(bbox, geojson=None):
         if not image:
             return None
             
-        # Very basic water thresholding on VV polarization (water is dark in SAR)
+        # Get elevation data (SRTM) to mask out steep slopes (radar shadow)
+        dem = ee.Image('USGS/SRTMGL1_003')
+        slope = ee.Terrain.slope(dem)
+        # Terrain is flat if slope < 5 degrees
+        flat_terrain = slope.lt(5)
+            
+        # Water thresholding on VV polarization (water is dark in SAR)
         vv = image.select('VV')
-        water = vv.lt(-16).rename('water') # Threshold -16 dB
+        # Mask out anything that is steep terrain (prevent shadow misclassification)
+        water = vv.lt(-14).And(flat_terrain).rename('water')
         
         # Calculate area
         area_image = water.multiply(ee.Image.pixelArea())
@@ -108,8 +122,10 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None) -> str:
     Returns a dynamic GEE Map Tile URL for the specified analysis module.
     """
     try:
-        if geojson:
+        if geojson and 'geometry' in geojson:
             geometry = ee.Geometry(geojson['geometry'])
+        elif geojson and 'features' in geojson and len(geojson['features']) > 0:
+            geometry = ee.Geometry(geojson['features'][0]['geometry'])
         else:
             geometry = ee.Geometry.Rectangle(bbox)
 
@@ -117,14 +133,19 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None) -> str:
             # SAR Water Mask
             collection = (ee.ImageCollection('COPERNICUS/S1_GRD')
                           .filterBounds(geometry)
-                          .filterDate('2024-06-01', '2024-09-30')
+                          .filterDate('2020-01-01', '2026-12-31')
                           .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV'))
                           .filter(ee.Filter.eq('instrumentMode', 'IW'))
                           .sort('system:time_start', False))
             image = collection.mosaic()
             
-            # Water mask (VV < -16 dB)
-            water = image.select('VV').lt(-16).selfMask()
+            # Get elevation data (SRTM) to mask out steep slopes (radar shadow)
+            dem = ee.Image('USGS/SRTMGL1_003')
+            slope = ee.Terrain.slope(dem)
+            flat_terrain = slope.lt(5)
+            
+            # Water mask (VV < -14 dB) combined with flat terrain
+            water = image.select('VV').lt(-14).And(flat_terrain).selfMask()
             
             # Create a visualization mapping
             map_id = water.getMapId({'min': 1, 'max': 1, 'palette': ['00FFFF']})
@@ -134,7 +155,7 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None) -> str:
             # NDVI Heatmap
             collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
                           .filterBounds(geometry)
-                          .filterDate('2024-06-01', '2024-09-30')
+                          .filterDate('2020-01-01', '2026-12-31')
                           .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
                           .sort('system:time_start', False))
             image = collection.mosaic()
