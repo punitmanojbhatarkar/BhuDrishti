@@ -308,7 +308,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-deep); color: 
   z-index: 1500;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .chat-panel-container {
     top: auto;
     bottom: 0;
