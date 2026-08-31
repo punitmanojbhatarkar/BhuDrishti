@@ -62,7 +62,7 @@ def detect_intent(query: str) -> dict:
     prompt = f"""Extract the intent and location from the user's query.
     The query might be in English, Hindi, Hinglish, and contain severe spelling mistakes.
     Modules allowed: "flood", "agri", "urban", "forest", "water", "general".
-    Location: Extract the specific Indian state, city, or geographical feature (e.g., "punjab", "assam", "bengaluru"). If none, output "india".
+    Location: Extract the specific geographical location (state, city, country, or region) mentioned. If none, output "unknown".
     
     Query: "{query}"
     
@@ -71,14 +71,14 @@ def detect_intent(query: str) -> dict:
     """
     
     module = "general"
-    location = "india"
+    location = "unknown"
     
     try:
         response = router_model.generate_content(prompt)
         text = response.text.strip().replace("```json", "").replace("```", "")
         data = json.loads(text)
         module = data.get("module", "general").lower()
-        location = data.get("location", "india").lower()
+        location = data.get("location", "unknown").lower()
     except Exception as e:
         print(f"LLM routing failed: {e}")
         # Fallback keyword logic
@@ -97,14 +97,23 @@ def detect_intent(query: str) -> dict:
         aliases = {
             "assam":"assam","punjab":"punjab","bengaluru":"bengaluru","bangalore":"bengaluru",
             "uttarakhand":"uttarakhand","chilika":"chilika","delhi":"delhi","mumbai":"mumbai",
-            "kolkata":"india","chennai":"india","hyderabad":"india","odisha":"chilika",
+            "kolkata":"kolkata","chennai":"chennai","hyderabad":"hyderabad","odisha":"odisha",
             "gujarat":"india","rajasthan":"india","kerala":"india",
-            "brahmaputra":"assam","guwahati":"assam",
+            "nepal": "nepal", "bhutan": "bhutan", "bangladesh": "bangladesh", "sri lanka": "sri lanka"
         }
-        for alias, mapped in aliases.items():
-            if alias in q:
-                location = mapped
+        
+        matched = False
+        for k, v in aliases.items():
+            if k in q:
+                location = v
+                matched = True
                 break
+                
+        if not matched:
+            location = q.replace("analyze", "").replace("flood", "").replace("in", "").strip() or "unknown"
+            
+    if not location or location == "unknown":
+        location = "india"
 
     use_sar = module == "flood" or any(w in query.lower() for w in ["sar","radar","cloud","monsoon"])
     today   = datetime.utcnow()
@@ -179,6 +188,21 @@ def chat_endpoint(request: QueryRequest):
     bbox       = get_bbox_for_location(location)
     center_lon = (bbox[0] + bbox[2]) / 2
     center_lat = (bbox[1] + bbox[3]) / 2
+
+    if not geojson:
+        geojson = {
+            "type": "FeatureCollection",
+            "features": [{
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [center_lon, center_lat]
+                },
+                "properties": {
+                    "name": location.title()
+                }
+            }]
+        }
 
     # ── STEP 1: STAC + Weather in parallel (max 18s) ─────────────────
     def do_stac():
@@ -320,4 +344,5 @@ def chat_endpoint(request: QueryRequest):
         "ndvi_score": ndvi_score,
         "area_km2":   area_km2,
         "gee_tile_url": gee_tile_url,
+        "geojson": geojson,
     }

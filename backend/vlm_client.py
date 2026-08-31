@@ -67,7 +67,7 @@ def analyze_image_with_gemini(
     module_ctx = MODULE_CONTEXT.get(module, MODULE_CONTEXT["general"])
 
     prompt = f"""You are a professional Remote Sensing and Earth Observation analyst named BhuDrishti AI.
-You are running a 2-stage AI pipeline (SAM-2 Segmentation + Classification) on a satellite image of {location.title()}, India.
+You are running a 2-stage AI pipeline (SAM-2 Segmentation + Classification) on a satellite image of {location.title()}.
 Analysis focus: {module_ctx}
 
 Ground truth data:
@@ -261,19 +261,17 @@ Write a professional intelligence report using standard Markdown formatting (bol
 def generate_mock_report(module: str, location: str, gee_context: str) -> str:
     """Generates a highly realistic mock report with historical context for demo purposes if the API fails."""
     loc = location.title()
-    date_baseline = "March 2023"
-    date_current = "August 2024"
     
     if module == "forest":
-        return f"**Yes, there is significant deforestation detected in {loc}.**\n\nBased on Sentinel-2 historical data, deforestation in {loc} has significantly accelerated. \n\n* **Historical Baseline ({date_baseline})**: Forest cover in the analyzed sector was 74% with a mean NDVI of 0.68.\n* **Current Scan ({date_current})**: Forest cover has degraded to 62%, with mean NDVI dropping to 0.45.\n\n**Analysis**: The primary driver of this 12% loss appears to be rapid infrastructure expansion and logging along the river valleys. Immediate conservation intervention is recommended.\n\n{gee_context}\n\n**Map Legend**: The green overlay represents the NDVI heat map, where darker green indicates dense, healthy vegetation, and missing areas indicate bare soil or deforestation."
+        return f"**Deforestation Analysis: {loc}**\n\nSatellite scans indicate significant changes in forest cover.\n\n* **Current Status:** 12% reduction in canopy density compared to last year.\n* **Insight:** Likely driven by infrastructure expansion or logging.\n\n**Map Legend**: The green overlay represents the NDVI vegetation heat map."
     elif module == "flood" or module == "water":
-        return f"**Yes, severe inundation is present in {loc}.**\n\nSAR imagery analysis indicates severe inundation in {loc} deviating significantly from historical baselines.\n\n* **Historical Baseline ({date_baseline})**: River boundaries were contained, with normal seasonal water levels.\n* **Current Scan ({date_current})**: Imagery reveals a 45% expansion of the floodplains beyond the historical high-water mark.\n\n**Analysis**: The excess water volume is heavily impacting the northern agricultural zones. Infrastructure in the low-lying basin is currently at critical risk.\n\n{gee_context}\n\n**Map Legend**: The bright cyan overlay represents the active water/flood mask detected by SAR."
+        return f"**Flood & Inundation Analysis: {loc}**\n\nSAR radar imagery has detected abnormal water levels.\n\n* **Current Status:** The river basin has expanded beyond its normal boundaries.\n* **Insight:** Low-lying agricultural and urban zones are currently submerged.\n\n**Map Legend**: The bright cyan overlay represents the active flood mask."
     elif module == "agri":
-        return f"**No, the wheat crop in {loc} is showing severe signs of stress.**\n\nVegetation indices show a sharp decline in crop health compared to the historical baseline for this season.\n\n* **Historical Baseline ({date_baseline})**: Peak NDVI averaged 0.65, indicating robust, healthy crop yields.\n* **Current Scan ({date_current})**: Current scans indicate an average NDVI of 0.42.\n\n**Analysis**: This 35% reduction in photosynthetic activity is likely due to recent climate stress and anomalous precipitation patterns. Yield forecasts should be adjusted accordingly.\n\n{gee_context}\n\n**Map Legend**: The green overlay represents the NDVI heat map, where darker green indicates dense, healthy vegetation, and lighter shades indicate crop stress."
+        return f"**Agricultural Health Analysis: {loc}**\n\nVegetation indices reveal crop stress in this region.\n\n* **Current Status:** Photosynthetic activity (NDVI) is 35% lower than average.\n* **Insight:** Probable drought or pest damage affecting the seasonal yield.\n\n**Map Legend**: The green overlay represents the crop health (NDVI)."
     elif module == "urban":
-        return f"**Yes, there is rapid urban sprawl detected in {loc}.**\n\nSpatial analysis shows significant, rapid expansion of the built environment.\n\n* **Historical Baseline ({date_baseline})**: Built-up area was consolidated within a 120 sq km perimeter.\n* **Current Scan ({date_current})**: The current scan detects 165 sq km of built-up environment.\n\n**Analysis**: This represents a 37% increase, indicating rapid encroachment into peripheral agricultural and forest buffer zones. Zoning enforcement is advised.\n\n{gee_context}\n\n**Map Legend**: The overlay represents the built-up index or surface reflectance highlighting new construction."
+        return f"**Urban Sprawl Analysis: {loc}**\n\nSpatial analysis detects rapid built-up area expansion.\n\n* **Current Status:** Built-up boundaries have expanded significantly.\n* **Insight:** Rapid encroachment into surrounding buffer zones detected.\n\n**Map Legend**: The overlay highlights new construction and impervious surfaces."
     else:
-        return f"**AREA ANALYSIS: {loc}**\n\nSatellite imagery successfully acquired and processed for {loc}.\n\n* **Historical Baseline ({date_baseline})**: Standard baseline variance observed.\n* **Current Scan ({date_current})**: Minor structural deviations detected within the region of interest.\n\n{gee_context}"
+        return f"**General Observation: {loc}**\n\nSatellite imagery processed successfully.\n\n* **Status:** Nominal changes detected in the region of interest."
 
 def translate_text(text: str, target_language: str) -> str:
     """
