@@ -126,11 +126,11 @@ export default function HomePage() {
 
         {/* Right side */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <div className="status-live" style={{ borderRadius: 4, background: "transparent", border: "1px solid var(--border)", padding: "4px 9px", fontFamily: "'JetBrains Mono', monospace" }}>
+          <div className="status-live hide-on-mobile" style={{ borderRadius: 4, background: "transparent", border: "1px solid var(--border)", padding: "4px 9px", fontFamily: "'JetBrains Mono', monospace" }}>
             <span className="status-dot" style={{ background: "var(--accent)" }} />
             <span style={{ fontSize: 10, color: "var(--text-2)", fontWeight: 500 }}>Live APIs</span>
           </div>
-          <div style={{
+          <div className="hide-on-mobile" style={{
             background: "transparent", border: "1px solid var(--border)",
             borderRadius: 4, padding: "4px 9px",
             fontSize: 10, color: "var(--text-3)",
@@ -152,7 +152,7 @@ export default function HomePage() {
 
           {/* Info panel toggle */}
           <button
-            className="btn-icon"
+            className="btn-icon hide-on-mobile"
             style={{ width: 28, height: 28, fontSize: 10 }}
             onClick={() => setInfoOpen(!infoOpen)}
             title="Data sources & models"

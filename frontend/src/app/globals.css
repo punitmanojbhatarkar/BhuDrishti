@@ -324,6 +324,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-deep); color: 
   .info-panel-container {
     display: none;
   }
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .chat-panel-container {
+    height: 60%;
+  }
 }
 
 

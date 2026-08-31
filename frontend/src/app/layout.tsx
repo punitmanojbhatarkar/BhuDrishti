@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   description: "An Agentic Vision-Language Assistant for Multimodal Remote Sensing | SIH 2026 | ISRO PS-26167",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
