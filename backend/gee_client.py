@@ -1,14 +1,22 @@
 import ee
 import os
 
+import json
+
 # Initialize Earth Engine with the service account
 try:
+    with open('gee_key.json', 'r') as f:
+        key_data = json.load(f)
+        client_email = key_data.get('client_email')
+        
     credentials = ee.ServiceAccountCredentials(
-        'bhudrishti-gee-service@gmail-reply-app.iam.gserviceaccount.com', 
+        client_email, 
         'gee_key.json'
     )
     ee.Initialize(credentials)
     print("Earth Engine Initialized Successfully!")
+except FileNotFoundError:
+    print("Earth Engine init failed: gee_key.json not found in backend folder.")
 except Exception as e:
     print(f"Earth Engine init failed: {e}")
 
