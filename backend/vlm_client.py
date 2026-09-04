@@ -346,6 +346,22 @@ def generate_fallback_report(module: str, location: str, context: dict) -> str:
             f"3. Update urban land-use master plan records immediately\n\n"
             f"**5. 🗺️ Map Legend:** The overlay highlights new construction and impervious surfaces from Sentinel-2 change detection."
         )
+    elif module == "flood_compare":
+        return (
+            f"### 🔄 Temporal Change Detection (SAR) — {loc}\n"
+            f"**Date:** {today} | **Sensor:** Sentinel-1 SAR (VV Polarization)\n\n"
+            f"**1. Scene Assessment:** Multi-temporal SAR radar imagery confirms significant changes in inundation patterns across {loc} over the requested years.\n\n"
+            f"**2. 📊 Quantitative Findings:**\n"
+            f"- Historical flood extent shifts detected along major water bodies.\n"
+            f"- Detection: VV backscatter < -14 dB + SRTM DEM masking (slopes > 5° excluded)\n\n"
+            f"**3. ⚠️ Risk Assessment: HIGH**\n"
+            f"- Historical comparison indicates shifting vulnerability zones.\n\n"
+            f"**4. 📋 Recommended Actions:**\n"
+            f"1. Update regional flood hazard maps based on the latest extent.\n"
+            f"2. Reinforce embankments in areas showing recurrent inundation.\n"
+            f"3. Relocate vulnerable populations from historically affected zones.\n\n"
+            f"**5. 🗺️ Map Legend:** The map overlays historical flood extents using chronological color mapping."
+        )
     else:
         return (
             f"### 🌍 General Satellite Intelligence — {loc}\n"
