@@ -52,11 +52,13 @@ def calculate_real_ndvi(bbox, geojson=None):
         ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
         
         # Calculate mean NDVI over the region
+        # scale=100m is 100x faster than scale=10m for large regions like states
         mean_ndvi = ndvi.reduceRegion(
             reducer=ee.Reducer.mean(),
             geometry=geometry,
-            scale=10,
-            maxPixels=1e13
+            scale=100,
+            maxPixels=1e13,
+            bestEffort=True   # auto-coarsen if still too slow
         ).get('NDVI').getInfo()
         
         return round(float(mean_ndvi), 3) if mean_ndvi is not None else None
@@ -99,13 +101,15 @@ def calculate_water_area(bbox, geojson=None):
         # Mask out anything that is steep terrain (prevent shadow misclassification)
         water = vv.lt(-14).And(flat_terrain).rename('water')
         
-        # Calculate area
+        # Calculate area using scale=100m (100x faster than 10m for large regions)
+        # bestEffort=True auto-coarsens further if the region is enormous
         area_image = water.multiply(ee.Image.pixelArea())
         water_area_sq_m = area_image.reduceRegion(
             reducer=ee.Reducer.sum(),
             geometry=geometry,
-            scale=10,
-            maxPixels=1e13
+            scale=100,
+            maxPixels=1e13,
+            bestEffort=True
         ).get('water').getInfo()
         
         if water_area_sq_m is None:

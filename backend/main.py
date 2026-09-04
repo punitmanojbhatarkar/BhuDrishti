@@ -263,50 +263,35 @@ def chat_endpoint(request: QueryRequest):
                 thumbnail_url, location, module, gee_context
             )
 
-    # Submit GEE first
+    # Submit GEE first — wait for it fully before starting Gemini
     f_gee = _pool.submit(do_gee)
 
-    # Submit Gemini with the context we have so far (GEE result added later if fast enough)
-    # Give Gemini a slightly delayed start so GEE might finish first
-    import time
-    time.sleep(0.5)  # tiny pause so GEE has a head start
-
-    # Try to get GEE result quickly (3s fast path)
+    # Wait for GEE to finish (up to 40s — scale=100+bestEffort is fast enough)
     ndvi_score = None
     area_km2   = None
     gee_tile_url = None
     try:
-        gee_key, gee_val, tile_url = f_gee.result(timeout=3)
+        gee_key, gee_val, tile_url = f_gee.result(timeout=40)
         gee_tile_url = tile_url
         if gee_key == "ndvi":
             ndvi_score = gee_val
         elif gee_key == "area":
             area_km2 = gee_val
-    except (FuturesTimeout, Exception):
-        pass  # GEE still running, start Gemini with what we have
+        print(f"GEE result: {gee_key}={gee_val}, tile={'yes' if tile_url else 'no'}")
+    except (FuturesTimeout, Exception) as e:
+        print(f"GEE timeout or error: {e}")
 
-    # Inject whatever GEE returned so far
-    context["GEE_NDVI"]           = str(ndvi_score) if ndvi_score else "N/A"
-    context["GEE_Water_Area_km2"] = str(area_km2)   if area_km2  else "N/A"
+    # NOW inject verified GEE data into context before launching Gemini
+    context["GEE_NDVI"]           = str(ndvi_score) if ndvi_score is not None else "N/A"
+    context["GEE_Water_Area_km2"] = str(area_km2)   if area_km2  is not None else "N/A"
+    print(f"Context sent to Gemini: NDVI={context['GEE_NDVI']}, Area={context['GEE_Water_Area_km2']}")
 
-    # Launch Gemini
+    # Launch Gemini AFTER GEE so it has the real numbers
     f_gemini = _pool.submit(do_gemini, context)
 
-    # Wait for GEE to finish (remaining budget)
+    # Wait for Gemini (up to 60s)
     try:
-        if ndvi_score is None and area_km2 is None and gee_tile_url is None:
-            gee_key, gee_val, tile_url = f_gee.result(timeout=20)
-            gee_tile_url = tile_url
-            if gee_key == "ndvi":
-                ndvi_score = gee_val
-            elif gee_key == "area":
-                area_km2 = gee_val
-    except (FuturesTimeout, Exception) as e:
-        print(f"GEE timeout: {e}")
-
-    # Wait for Gemini (remaining budget up to 45s from now)
-    try:
-        gemini_report = f_gemini.result(timeout=45)
+        gemini_report = f_gemini.result(timeout=60)
     except (FuturesTimeout, Exception) as e:
         print(f"Gemini timeout: {e}")
         gemini_report = (
