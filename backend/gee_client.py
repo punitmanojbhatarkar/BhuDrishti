@@ -141,15 +141,12 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None) -> str:
         else:
             geometry = ee.Geometry.Rectangle(bbox)
 
-        if module == "flood" or module == "water":
+        if module == "flood" or module == "water" or module == "flood_compare":
             # SAR Water Mask
             collection = (ee.ImageCollection('COPERNICUS/S1_GRD')
                           .filterBounds(geometry)
-                          .filterDate('2020-01-01', '2026-12-31')
                           .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV'))
-                          .filter(ee.Filter.eq('instrumentMode', 'IW'))
-                          .sort('system:time_start', False))
-            image = collection.mosaic()
+                          .filter(ee.Filter.eq('instrumentMode', 'IW')))
             
             # Get elevation data (SRTM) to mask out steep slopes (radar shadow)
             dem = ee.Image('USGS/SRTMGL1_003')
@@ -160,11 +157,27 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None) -> str:
             jrc = ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
             permanent_water = jrc.select('seasonality').gte(10)  # >= 10 months/year = permanent
             
-            # Final flood mask: SAR water AND flat terrain AND NOT permanent water
-            flood_mask = image.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
-            
-            map_id = flood_mask.getMapId({'min': 1, 'max': 1, 'palette': ['00FFFF']})
-            return map_id['tile_fetcher'].url_format
+            if module == "flood_compare":
+                # Past (2019 baseline)
+                past_img = collection.filterDate('2019-01-01', '2019-12-31').sort('system:time_start', False).mosaic()
+                past_flood = past_img.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
+                
+                # Current (Recent)
+                curr_img = collection.filterDate('2024-01-01', '2026-12-31').sort('system:time_start', False).mosaic()
+                curr_flood = curr_img.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
+                
+                # Convert to RGB overlays: Past = RED, Current = CYAN
+                past_rgb = past_flood.visualize(min=1, max=1, palette=['FF0000'])
+                curr_rgb = curr_flood.visualize(min=1, max=1, palette=['00FFFF'])
+                
+                combined = ee.ImageCollection([past_rgb, curr_rgb]).mosaic()
+                map_id = combined.getMapId()
+                return map_id['tile_fetcher'].url_format
+            else:
+                image = collection.filterDate('2020-01-01', '2026-12-31').sort('system:time_start', False).mosaic()
+                flood_mask = image.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
+                map_id = flood_mask.getMapId({'min': 1, 'max': 1, 'palette': ['00FFFF']})
+                return map_id['tile_fetcher'].url_format
             
         elif module == "agri" or module == "forest":
             # NDVI Heatmap

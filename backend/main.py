@@ -29,12 +29,13 @@ app.add_middleware(
 _pool = ThreadPoolExecutor(max_workers=8)
 
 MODULE_LABELS = {
-    "flood":   "DisasterWatch · SAR Flood Analysis",
-    "agri":    "AgroVision · Crop Health Index",
-    "urban":   "UrbanPulse · Change Detection",
-    "forest":  "ForestGuard · Deforestation Alert",
-    "water":   "WaterWatch · Hydrology",
-    "general": "BhuDrishti · Satellite Intelligence",
+    "flood": "DISASTERWATCH - SAR FLOOD ANALYSIS",
+    "flood_compare": "DISASTERWATCH - TEMPORAL CHANGE DETECTION (SAR)",
+    "agri": "KRISHI - CROP HEALTH (NDVI)",
+    "urban": "NAGAR - URBAN SPRAWL & INFRASTRUCTURE",
+    "forest": "VANAM - FOREST COVER & CONSERVATION",
+    "water": "JAL - WATER RESOURCES MANAGEMENT",
+    "general": "INTELLIGENCE BRIEFING"
 }
 
 # ── Verification Agent ─────────────────────────────────────────────────
@@ -123,7 +124,8 @@ router_model = genai.GenerativeModel("gemini-3.7-flash")
 def detect_intent(query: str) -> dict:
     prompt = f"""Extract the intent and location from the user's query.
     The query might be in English, Hindi, Hinglish, and contain severe spelling mistakes.
-    Modules allowed: "flood", "agri", "urban", "forest", "water", "general".
+    Modules allowed: "flood", "flood_compare", "agri", "urban", "forest", "water", "general".
+    * If the user asks to "compare" floods or asks about "past", "history", or "5 years", output "flood_compare".
     Location: Extract the specific geographical location (state, city, country, or region) mentioned. If none, output "unknown".
     
     Query: "{query}"
@@ -146,7 +148,10 @@ def detect_intent(query: str) -> dict:
         # Fallback keyword logic
         q = query.lower()
         if any(w in q for w in ["flood","inundation","cyclone","disaster","relief","submerged","sar","radar"]):
-            module = "flood"
+            if any(w in q for w in ["compare", "past", "history", "year"]):
+                module = "flood_compare"
+            else:
+                module = "flood"
         elif any(w in q for w in ["crop","wheat","paddy","rice","farm","agriculture","ndvi","soil","harvest","kharif","rabi","vegetation"]):
             module = "agri"
         elif any(w in q for w in ["urban","city","building","encroachment","sprawl","construction"]):
