@@ -156,40 +156,39 @@ def detect_intent(query: str) -> dict:
         regex_years = [int(y) for y in re.findall(r'\b(20\d{2})\b', query)]
         compare_years = sorted(list(set(compare_years + regex_years)))
         
-    try:
-        # Fallback keyword logic if not caught by LLM
-        q = query.lower()
-        if any(w in q for w in ["flood","inundation","cyclone","disaster","relief","submerged","sar","radar"]):
-            if any(w in q for w in ["compare", "past", "history", "year"]):
-                module = "flood_compare"
-            else:
-                module = "flood"
-        elif any(w in q for w in ["crop","wheat","paddy","rice","farm","agriculture","ndvi","soil","harvest","kharif","rabi","vegetation"]):
-            module = "agri"
-        elif any(w in q for w in ["urban","city","building","encroachment","sprawl","construction"]):
-            module = "urban"
-        elif any(w in q for w in ["forest","deforest","tree","jungle","carbon","fire"]):
-            module = "forest"
-        elif any(w in q for w in ["water","lake","river","reservoir","drought","wetland","dam"]):
-            module = "water"
+    # Fallback keyword logic if not caught by LLM
+    q = query.lower()
+    if any(w in q for w in ["flood","inundation","cyclone","disaster","relief","submerged","sar","radar"]):
+        if any(w in q for w in ["compare", "past", "history", "year"]):
+            module = "flood_compare"
+        else:
+            module = "flood"
+    elif any(w in q for w in ["crop","wheat","paddy","rice","farm","agriculture","ndvi","soil","harvest","kharif","rabi","vegetation"]):
+        module = "agri"
+    elif any(w in q for w in ["urban","city","building","encroachment","sprawl","construction"]):
+        module = "urban"
+    elif any(w in q for w in ["forest","deforest","tree","jungle","carbon","fire"]):
+        module = "forest"
+    elif any(w in q for w in ["water","lake","river","reservoir","drought","wetland","dam"]):
+        module = "water"
 
-        aliases = {
-            "assam":"assam","punjab":"punjab","bengaluru":"bengaluru","bangalore":"bengaluru",
-            "uttarakhand":"uttarakhand","chilika":"chilika","delhi":"delhi","mumbai":"mumbai",
-            "kolkata":"kolkata","chennai":"chennai","hyderabad":"hyderabad","odisha":"odisha",
-            "gujarat":"india","rajasthan":"india","kerala":"india",
-            "nepal": "nepal", "bhutan": "bhutan", "bangladesh": "bangladesh", "sri lanka": "sri lanka"
-        }
-        
-        matched = False
-        for k, v in aliases.items():
-            if k in q:
-                location = v
-                matched = True
-                break
-                
-        if not matched:
-            location = q.replace("analyze", "").replace("flood", "").replace("in", "").strip() or "unknown"
+    aliases = {
+        "assam":"assam","punjab":"punjab","bengaluru":"bengaluru","bangalore":"bengaluru",
+        "uttarakhand":"uttarakhand","chilika":"chilika","delhi":"delhi","mumbai":"mumbai",
+        "kolkata":"kolkata","chennai":"chennai","hyderabad":"hyderabad","odisha":"odisha",
+        "gujarat":"india","rajasthan":"india","kerala":"india",
+        "nepal": "nepal", "bhutan": "bhutan", "bangladesh": "bangladesh", "sri lanka": "sri lanka"
+    }
+    
+    matched = False
+    for k, v in aliases.items():
+        if k in q:
+            location = v
+            matched = True
+            break
+            
+    if not matched:
+        location = q.replace("analyze", "").replace("flood", "").replace("in", "").strip() or "unknown"
             
     if not location or location == "unknown":
         location = "india"
