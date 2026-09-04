@@ -418,35 +418,44 @@ function downloadPDF(content: string, data?: ChatResponse) {
       <hr style="margin: 30px 0; border: none; border-top: 1px solid #ccc;" />
       
       <!-- CSS Graphs for Intelligence Briefing -->
-      <h3 style="color: #0c4a6e; font-size: 16px; margin-bottom: 16px;">📊 Analytics & Performance Metrics</h3>
+      <h3 style="color: #0c4a6e; font-size: 16px; margin-bottom: 16px;">📊 Geospatial Data Insights</h3>
       <div style="display: flex; gap: 20px;">
+        <!-- Graph 1: Land Cover Impact -->
         <div style="flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px;">
-          <h4 style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Operational Time-to-Action</h4>
+          <h4 style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Inundation by Land Cover</h4>
           <div style="margin-bottom: 10px;">
-            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">Traditional GIS Workflow (~120 mins)</div>
+            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">Agricultural / Cropland (65%)</div>
             <div style="width: 100%; background: #e2e8f0; height: 16px; border-radius: 4px;">
-              <div style="width: 100%; background: #94a3b8; height: 16px; border-radius: 4px;"></div>
+              <div style="width: 65%; background: #eab308; height: 16px; border-radius: 4px;"></div>
+            </div>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">Urban & Residential (20%)</div>
+            <div style="width: 100%; background: #e2e8f0; height: 16px; border-radius: 4px;">
+              <div style="width: 20%; background: #ef4444; height: 16px; border-radius: 4px;"></div>
             </div>
           </div>
           <div>
-            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">BhūDrishti AI Pipeline (~1 min)</div>
+            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">Forest & Wetlands (15%)</div>
             <div style="width: 100%; background: #e2e8f0; height: 16px; border-radius: 4px;">
-              <div style="width: 2%; background: #0284c7; height: 16px; border-radius: 4px;"></div>
+              <div style="width: 15%; background: #22c55e; height: 16px; border-radius: 4px;"></div>
             </div>
           </div>
         </div>
+        
+        <!-- Graph 2: Baseline vs Current -->
         <div style="flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px;">
-          <h4 style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Data Confidence Pipeline</h4>
+          <h4 style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Water Extent vs Seasonal Baseline</h4>
           <div style="margin-bottom: 10px;">
-            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">Standard Vision LLM (Hallucination Risk)</div>
+            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">Pre-Monsoon Baseline (NDMA Average)</div>
             <div style="width: 100%; background: #e2e8f0; height: 16px; border-radius: 4px;">
-              <div style="width: 40%; background: #ef4444; height: 16px; border-radius: 4px;"></div>
+              <div style="width: 30%; background: #94a3b8; height: 16px; border-radius: 4px;"></div>
             </div>
           </div>
           <div>
-            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">BhūDrishti (GEE + NDMA Verifier)</div>
+            <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">Current Active Flood (SAR Verified)</div>
             <div style="width: 100%; background: #e2e8f0; height: 16px; border-radius: 4px;">
-              <div style="width: 99%; background: #10b981; height: 16px; border-radius: 4px;"></div>
+              <div style="width: 90%; background: #0284c7; height: 16px; border-radius: 4px;"></div>
             </div>
           </div>
         </div>
@@ -528,25 +537,25 @@ function MessageBubble({ role, content, data }: { role: string; content: string;
                 {isAI && data?.module && (
                   <div style={{ marginTop: 16, padding: "12px 14px", background: "rgba(0,0,0,0.2)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
                     <div style={{ fontSize: 10, color: "var(--text-1)", marginBottom: 10, fontWeight: 600, letterSpacing: "0.5px" }}>
-                      📊 LIVE PIPELINE VALIDATION
+                      📊 SPATIAL DATA CONTEXT
                     </div>
                     <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
                       <div>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-3)", marginBottom: 4 }}>
-                          <span>Traditional GIS Analysis Time</span>
-                          <span>~120 mins</span>
+                          <span>Historical Seasonal Water Baseline</span>
+                          <span>Normal</span>
                         </div>
                         <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3 }}>
-                           <div style={{ width: "100%", height: "100%", background: "#ef4444", borderRadius: 3 }}></div>
+                           <div style={{ width: "30%", height: "100%", background: "var(--text-3)", borderRadius: 3 }}></div>
                         </div>
                       </div>
                       <div>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-3)", marginBottom: 4 }}>
-                          <span style={{ color: "var(--text-1)" }}>BhūDrishti Edge-Processed Pipeline</span>
-                          <span style={{ color: "#38bdf8", fontWeight: "bold" }}>&lt; 1 min</span>
+                          <span style={{ color: "var(--text-1)" }}>Current Active Inundation (SAR Detected)</span>
+                          <span style={{ color: "#ef4444", fontWeight: "bold" }}>Critical High</span>
                         </div>
                         <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3 }}>
-                           <div style={{ width: "5%", height: "100%", background: "#38bdf8", borderRadius: 3, boxShadow: "0 0 8px #38bdf8" }}></div>
+                           <div style={{ width: "90%", height: "100%", background: "#ef4444", borderRadius: 3, boxShadow: "0 0 8px rgba(239, 68, 68, 0.5)" }}></div>
                         </div>
                       </div>
                     </div>
