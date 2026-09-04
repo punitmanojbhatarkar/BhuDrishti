@@ -1,5 +1,5 @@
 // Backend API types and helpers
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://bhudrishti-api.loca.lt";
 
 export interface ChatRequest {
   query: string;
@@ -39,7 +39,10 @@ export interface ChatResponse {
 export async function sendChatMessage(payload: ChatRequest): Promise<ChatResponse> {
   const res = await fetch(`${API_BASE}/api/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "Bypass-Tunnel-Reminder": "true" 
+    },
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
