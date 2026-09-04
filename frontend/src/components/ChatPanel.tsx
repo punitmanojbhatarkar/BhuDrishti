@@ -581,24 +581,33 @@ function MessageBubble({ role, content, data }: { role: string; content: string;
                 )}
 
                 {/* PDF Download Button */}
-                <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>
+                <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
                   <button
                     onClick={() => downloadPDF(content, data)}
                     style={{
-                      display: "flex", alignItems: "center", gap: 5,
-                      background: "rgba(3,105,161,0.15)",
-                      border: "1px solid rgba(56,189,248,0.3)",
-                      borderRadius: 8, padding: "5px 10px",
-                      color: "#38bdf8", fontSize: 10, cursor: "pointer",
-                      fontFamily: "'JetBrains Mono', monospace",
-                      transition: "all 0.2s",
+                      display: "flex", alignItems: "center", gap: 6,
+                      background: "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 6, padding: "6px 12px",
+                      color: "var(--text-2)", fontSize: 10, cursor: "pointer",
+                      fontFamily: "'Inter', sans-serif", fontWeight: 500, letterSpacing: "0.3px",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
                     }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(3,105,161,0.3)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(3,105,161,0.15)"; }}
-                    title="Download PDF Intelligence Report"
+                    onMouseEnter={e => { 
+                      (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.1)"; 
+                      (e.currentTarget as HTMLButtonElement).style.color = "var(--text-1)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.2)";
+                    }}
+                    onMouseLeave={e => { 
+                      (e.currentTarget as HTMLButtonElement).style.background = "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))"; 
+                      (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.1)";
+                    }}
+                    title="Generate Classified PDF Intelligence Report"
                   >
-                    <FileDown size={11} />
-                    Download PDF Report
+                    <FileDown size={12} strokeWidth={2} />
+                    Generate PDF Report
                   </button>
                 </div>
               </div>
