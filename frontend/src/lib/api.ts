@@ -34,6 +34,7 @@ export interface ChatResponse {
   ndvi_score?: number | null;
   area_km2?: number | null;
   gee_tile_url?: string | null;
+  compare_years?: number[] | null;
 }
 
 export async function sendChatMessage(payload: ChatRequest): Promise<ChatResponse> {

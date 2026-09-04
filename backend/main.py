@@ -439,4 +439,5 @@ def chat_endpoint(request: QueryRequest):
         "verification_notes":      verification.get("notes", ""),
         "historical_range":        verification.get("historical_range", "N/A"),
         "date_range":              f"{date_from} to {date_to}",
+        "compare_years":           compare_years,
     }

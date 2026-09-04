@@ -539,26 +539,43 @@ function MessageBubble({ role, content, data }: { role: string; content: string;
                     <div style={{ fontSize: 10, color: "var(--text-1)", marginBottom: 10, fontWeight: 600, letterSpacing: "0.5px" }}>
                       📊 SPATIAL DATA CONTEXT
                     </div>
-                    <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-3)", marginBottom: 4 }}>
-                          <span>Historical Seasonal Water Baseline</span>
-                          <span>Normal</span>
+                    
+                    {data.module === "flood_compare" && data.compare_years && data.compare_years.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ fontSize: 9, color: "var(--text-3)", marginBottom: 4 }}>Temporal Map Legend</div>
+                        {data.compare_years.sort((a,b) => a - b).map((year, i) => {
+                          const palette = ['#ef4444', '#eab308', '#06b6d4', '#22c55e', '#d946ef']; // Red, Yellow, Cyan, Green, Magenta
+                          const color = palette[i % palette.length];
+                          return (
+                            <div key={year} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <div style={{ width: 12, height: 12, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}80` }} />
+                              <div style={{ fontSize: 11, color: "var(--text-1)" }}>Flood Extent — {year}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-3)", marginBottom: 4 }}>
+                            <span>Historical Seasonal Water Baseline</span>
+                            <span>Normal</span>
+                          </div>
+                          <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3 }}>
+                             <div style={{ width: "30%", height: "100%", background: "var(--text-3)", borderRadius: 3 }}></div>
+                          </div>
                         </div>
-                        <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3 }}>
-                           <div style={{ width: "30%", height: "100%", background: "var(--text-3)", borderRadius: 3 }}></div>
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-3)", marginBottom: 4 }}>
+                            <span style={{ color: "var(--text-1)" }}>Current Active Inundation (SAR Detected)</span>
+                            <span style={{ color: "#ef4444", fontWeight: "bold" }}>Critical High</span>
+                          </div>
+                          <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3 }}>
+                             <div style={{ width: "90%", height: "100%", background: "#ef4444", borderRadius: 3, boxShadow: "0 0 8px rgba(239, 68, 68, 0.5)" }}></div>
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-3)", marginBottom: 4 }}>
-                          <span style={{ color: "var(--text-1)" }}>Current Active Inundation (SAR Detected)</span>
-                          <span style={{ color: "#ef4444", fontWeight: "bold" }}>Critical High</span>
-                        </div>
-                        <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3 }}>
-                           <div style={{ width: "90%", height: "100%", background: "#ef4444", borderRadius: 3, boxShadow: "0 0 8px rgba(239, 68, 68, 0.5)" }}></div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 )}
 
