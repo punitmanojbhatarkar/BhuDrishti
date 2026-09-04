@@ -307,6 +307,7 @@ def chat_endpoint(request: QueryRequest):
     context["Analysis_Module"]  = MODULE_LABELS.get(module, module)
     context["Location"]         = location.title()
     context["Date_Range"]       = f"{date_from} to {date_to} (last 90 days)"
+    today = datetime.utcnow()
     context["Pre_Flood_Baseline"] = f"{(today - timedelta(days=365)).strftime('%Y-%m-%d')} to {(today - timedelta(days=270)).strftime('%Y-%m-%d')} (pre-monsoon reference)"
     context["SAR_Sensor"]       = "Sentinel-1 SAR GRD (VV Polarization)"
     context["Threshold"]        = "VV < -14 dB + SRTM DEM slope < 5° + JRC permanent water excluded"
