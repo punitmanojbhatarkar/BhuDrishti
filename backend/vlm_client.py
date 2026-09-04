@@ -33,6 +33,7 @@ MODULE_CONTEXT = {
     "urban":   "Urban sprawl and built-up area change detection using Sentinel-2 optical imagery. Identify construction, roads, impervious surfaces, and encroachment.",
     "forest":  "Forest cover and deforestation detection using Sentinel-2 NDVI. Identify tree loss, bare patches, logging scars, and canopy gaps.",
     "water":   "Water body extent, level, and quality analysis using Sentinel-1 SAR and Sentinel-2. Analyse water extent, sedimentation, turbidity, and seasonal changes.",
+    "flood_compare": "Temporal Change Detection comparing multiple years of SAR flood data to analyze historical inundation patterns versus current conditions.",
     "general": "General Earth observation analysis. Provide a comprehensive multi-spectral assessment of the region.",
 }
 
@@ -61,7 +62,25 @@ def _build_prompt(location: str, module: str, context: dict) -> str:
 
     # Build GEE grounding block
     gee_section = ""
-    if module in ["flood", "water"] and area_km2 not in ["N/A", None, "None"]:
+    compare_years = context.get("compare_years", [])
+    
+    if module == "flood_compare" and compare_years:
+        palette = ['RED', 'YELLOW', 'CYAN', 'GREEN', 'MAGENTA']
+        years = sorted(list(set(compare_years)))
+        
+        legend_items = []
+        for i, year in enumerate(years):
+            color = palette[i % len(palette)]
+            legend_items.append(f"Flood extent in {year} is shown in {color}")
+            
+        legend_str = ", ".join(legend_items)
+        gee_section = (
+            f"\n**VERIFIED TEMPORAL GEE GROUND TRUTH (Mathematically Proven):**\n"
+            f"- Analysis: Temporal comparison of flood extent for years: {years}\n"
+            f"- Method: Sentinel-1 VV < -14 dB + SRTM DEM slope masking\n"
+            f"- **CRITICAL INSTRUCTION FOR MAP LEGEND:** The map visually overlays these timelines. You MUST output exactly this as your map legend: '{legend_str}'. Do NOT invent a generic legend.\n"
+        )
+    elif module in ["flood", "water"] and area_km2 not in ["N/A", None, "None"]:
         gee_section = (
             f"\n**VERIFIED GEE GROUND TRUTH (Mathematically Proven — NOT estimated):**\n"
             f"- Active Flood/Water Area: **{area_km2} km²**\n"

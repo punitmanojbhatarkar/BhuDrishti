@@ -129,7 +129,7 @@ def calculate_water_area(bbox, geojson=None):
         print(f"GEE Water Area Error: {e}")
         return None
 
-def get_gee_map_tile(module: str, bbox: list, geojson=None) -> str:
+def get_gee_map_tile(module: str, bbox: list, geojson=None, compare_years: list = None) -> str:
     """
     Returns a dynamic GEE Map Tile URL for the specified analysis module.
     """
@@ -157,20 +157,24 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None) -> str:
             jrc = ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
             permanent_water = jrc.select('seasonality').gte(10)  # >= 10 months/year = permanent
             
-            if module == "flood_compare":
-                # Past (2019 baseline)
-                past_img = collection.filterDate('2019-01-01', '2019-12-31').sort('system:time_start', False).mosaic()
-                past_flood = past_img.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
+            if module == "flood_compare" and compare_years:
+                # Dynamic N-Timeline Comparison
+                palette = ['FF0000', 'FFFF00', '00FFFF', '00FF00', 'FF00FF'] # Red, Yellow, Cyan, Green, Magenta
+                years = sorted(list(set(compare_years))) # Ensure unique and chronological
                 
-                # Current (Recent)
-                curr_img = collection.filterDate('2024-01-01', '2026-12-31').sort('system:time_start', False).mosaic()
-                curr_flood = curr_img.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
+                rgb_layers = []
+                for i, year in enumerate(years):
+                    color = palette[i % len(palette)]
+                    start_date = f"{year}-01-01"
+                    end_date = f"{year}-12-31"
+                    
+                    year_img = collection.filterDate(start_date, end_date).sort('system:time_start', False).mosaic()
+                    year_flood = year_img.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
+                    
+                    year_rgb = year_flood.visualize(min=1, max=1, palette=[color])
+                    rgb_layers.append(year_rgb)
                 
-                # Convert to RGB overlays: Past = RED, Current = CYAN
-                past_rgb = past_flood.visualize(min=1, max=1, palette=['FF0000'])
-                curr_rgb = curr_flood.visualize(min=1, max=1, palette=['00FFFF'])
-                
-                combined = ee.ImageCollection([past_rgb, curr_rgb]).mosaic()
+                combined = ee.ImageCollection(rgb_layers).mosaic()
                 map_id = combined.getMapId()
                 return map_id['tile_fetcher'].url_format
             else:

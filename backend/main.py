@@ -125,13 +125,14 @@ def detect_intent(query: str) -> dict:
     prompt = f"""Extract the intent and location from the user's query.
     The query might be in English, Hindi, Hinglish, and contain severe spelling mistakes.
     Modules allowed: "flood", "flood_compare", "agri", "urban", "forest", "water", "general".
-    * If the user asks to "compare" floods or asks about "past", "history", or "5 years", output "flood_compare".
+    * If the user asks to "compare" floods or asks about "past", "history", or specific years, output "flood_compare".
     Location: Extract the specific geographical location (state, city, country, or region) mentioned. If none, output "unknown".
+    Years: If the user mentions specific years to compare (e.g., 2018, 2021), extract them into a list of integers called "compare_years".
     
     Query: "{query}"
     
-    Return ONLY a valid JSON object with keys "module" and "location". Do not include markdown formatting.
-    Example: {{"module": "agri", "location": "punjab"}}
+    Return ONLY a valid JSON object with keys "module", "location", and "compare_years" (if applicable). Do not include markdown formatting.
+    Example: {{"module": "flood_compare", "location": "assam", "compare_years": [2018, 2021, 2026]}}
     """
     
     module = "general"
@@ -143,8 +144,10 @@ def detect_intent(query: str) -> dict:
         data = json.loads(text)
         module = data.get("module", "general").lower()
         location = data.get("location", "unknown").lower()
+        compare_years = data.get("compare_years", [])
     except Exception as e:
         print(f"LLM routing failed: {e}")
+        compare_years = []
         # Fallback keyword logic
         q = query.lower()
         if any(w in q for w in ["flood","inundation","cyclone","disaster","relief","submerged","sar","radar"]):
@@ -182,12 +185,23 @@ def detect_intent(query: str) -> dict:
     if not location or location == "unknown":
         location = "india"
 
-    use_sar = module == "flood" or any(w in query.lower() for w in ["sar","radar","cloud","monsoon"])
+    use_sar = module in ["flood", "flood_compare"] or any(w in query.lower() for w in ["sar","radar","cloud","monsoon"])
+    
+    # Ensure compare_years defaults to [2019, 2026] if module is flood_compare but none specified
+    if module == "flood_compare" and not compare_years:
+        compare_years = [2019, 2026]
+
     today   = datetime.utcnow()
     past    = today - timedelta(days=90)
     date_range = f"{past.strftime('%Y-%m-%d')}/{today.strftime('%Y-%m-%d')}"
 
-    return {"module": module, "location": location, "use_sar": use_sar, "date_range": date_range}
+    return {
+        "module": module,
+        "location": location,
+        "use_sar": use_sar,
+        "compare_years": compare_years,
+        "date_range": date_range
+    }
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────
@@ -249,6 +263,7 @@ def chat_endpoint(request: QueryRequest):
     module     = intent["module"]
     location   = intent["location"]
     use_sar    = intent["use_sar"]
+    compare_years = intent.get("compare_years", [])
     date_from, date_to = intent["date_range"].split("/")
     geojson    = request.geojson
 
@@ -316,11 +331,12 @@ def chat_endpoint(request: QueryRequest):
     context["Pre_Flood_Baseline"] = f"{(today - timedelta(days=365)).strftime('%Y-%m-%d')} to {(today - timedelta(days=270)).strftime('%Y-%m-%d')} (pre-monsoon reference)"
     context["SAR_Sensor"]       = "Sentinel-1 SAR GRD (VV Polarization)"
     context["Threshold"]        = "VV < -14 dB + SRTM DEM slope < 5° + JRC permanent water excluded"
+    context["compare_years"]    = compare_years
 
     # ── STEP 2: GEE + Gemini run IN PARALLEL ─────────────────────────
     def do_gee():
         try:
-            tile_url = get_gee_map_tile(module, bbox, geojson)
+            tile_url = get_gee_map_tile(module, bbox, geojson, compare_years)
             if module in ["agri", "forest"]:
                 return ("ndvi", calculate_real_ndvi(bbox, geojson), tile_url)
             elif module in ["flood", "water"]:
