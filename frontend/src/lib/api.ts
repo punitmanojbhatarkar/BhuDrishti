@@ -1,5 +1,5 @@
 // Backend API types and helpers
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://bhudrishti-api.loca.lt";
+export const API_BASE = "https://bhudrishti-api.loca.lt";
 
 export interface ChatRequest {
   query: string;
