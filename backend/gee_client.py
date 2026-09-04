@@ -110,13 +110,13 @@ def calculate_water_area(bbox, geojson=None):
         # Flood = SAR water mask AND NOT permanent water
         flood_only = water.And(permanent_water.Not()).rename('flood')
         
-        # Calculate area using scale=100m (fast) with bestEffort
+        # Calculate area using scale=500m (proven fast, avoids timeout)
         area_image = flood_only.multiply(ee.Image.pixelArea())
         water_area_sq_m = area_image.reduceRegion(
             reducer=ee.Reducer.sum(),
             geometry=geometry,
-            scale=100,
-            maxPixels=1e13,
+            scale=500,
+            maxPixels=1e10,
             bestEffort=True
         ).get('flood').getInfo()
         
