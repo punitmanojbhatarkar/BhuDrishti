@@ -151,11 +151,6 @@ def detect_intent(query: str) -> dict:
         print(f"LLM routing failed: {e}")
         compare_years = []
         
-    # Regex fallback for years to prevent missing any 4-digit years in compare mode
-    if module == "flood_compare":
-        regex_years = [int(y) for y in re.findall(r'\b(20\d{2})\b', query)]
-        compare_years = sorted(list(set(compare_years + regex_years)))
-        
     # Fallback keyword logic if not caught by LLM
     q = query.lower()
     if any(w in q for w in ["flood","inundation","cyclone","disaster","relief","submerged","sar","radar"]):
@@ -194,6 +189,21 @@ def detect_intent(query: str) -> dict:
         location = "india"
 
     use_sar = module in ["flood", "flood_compare"] or any(w in query.lower() for w in ["sar","radar","cloud","monsoon"])
+    
+    # Regex fallback for years to prevent missing any 4-digit years in compare mode
+    # We do this here to catch years even if the LLM failed to route to flood_compare initially
+    if module == "flood_compare":
+        # Extract years using regex
+        regex_years = [int(y) for y in re.findall(r'\b(20\d{2})\b', query)]
+        # Ensure any years from LLM are cast to ints (some models return strings)
+        valid_compare_years = []
+        for y in compare_years:
+            try:
+                valid_compare_years.append(int(y))
+            except (ValueError, TypeError):
+                pass
+        
+        compare_years = sorted(list(set(valid_compare_years + regex_years)))
     
     # Ensure compare_years defaults to [2019, 2026] if module is flood_compare but none specified
     if module == "flood_compare" and not compare_years:
