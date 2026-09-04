@@ -6,6 +6,8 @@ Pipeline:
   - Verification Agent sanity-checks GEE output before Gemini
   - Total response time: ~30-50 seconds
 """
+import json
+import re
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -148,7 +150,14 @@ def detect_intent(query: str) -> dict:
     except Exception as e:
         print(f"LLM routing failed: {e}")
         compare_years = []
-        # Fallback keyword logic
+        
+    # Regex fallback for years to prevent missing any 4-digit years in compare mode
+    if module == "flood_compare":
+        regex_years = [int(y) for y in re.findall(r'\b(20\d{2})\b', query)]
+        compare_years = sorted(list(set(compare_years + regex_years)))
+        
+    try:
+        # Fallback keyword logic if not caught by LLM
         q = query.lower()
         if any(w in q for w in ["flood","inundation","cyclone","disaster","relief","submerged","sar","radar"]):
             if any(w in q for w in ["compare", "past", "history", "year"]):

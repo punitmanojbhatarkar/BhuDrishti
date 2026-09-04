@@ -159,12 +159,18 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None, compare_years: list 
             
             if module == "flood_compare" and compare_years:
                 # Dynamic N-Timeline Comparison
-                palette = ['FF0000', 'FFFF00', '00FFFF', '00FF00', 'FF00FF'] # Red, Yellow, Cyan, Green, Magenta
                 years = sorted(list(set(compare_years))) # Ensure unique and chronological
                 
                 rgb_layers = []
                 for i, year in enumerate(years):
-                    color = palette[i % len(palette)]
+                    if i == 0:
+                        color = 'FF0000' # Oldest: Red
+                    elif i == len(years) - 1 and len(years) > 1:
+                        color = '00FFFF' # Newest: Cyan
+                    else:
+                        palette = ['FFFF00', '00FF00', 'FF00FF'] # Middle: Yellow, Green, Magenta
+                        color = palette[(i - 1) % len(palette)]
+
                     start_date = f"{year}-01-01"
                     end_date = f"{year}-12-31"
                     

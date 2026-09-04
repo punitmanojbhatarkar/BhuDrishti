@@ -543,9 +543,16 @@ function MessageBubble({ role, content, data }: { role: string; content: string;
                     {data.module === "flood_compare" && data.compare_years && data.compare_years.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         <div style={{ fontSize: 9, color: "var(--text-3)", marginBottom: 4 }}>Temporal Map Legend</div>
-                        {data.compare_years.sort((a,b) => a - b).map((year, i) => {
-                          const palette = ['#ef4444', '#eab308', '#06b6d4', '#22c55e', '#d946ef']; // Red, Yellow, Cyan, Green, Magenta
-                          const color = palette[i % palette.length];
+                        {data.compare_years.sort((a,b) => a - b).map((year, i, arr) => {
+                          let color = '';
+                          if (i === 0) {
+                            color = '#ef4444'; // Oldest: Red
+                          } else if (i === arr.length - 1 && arr.length > 1) {
+                            color = '#06b6d4'; // Newest: Cyan
+                          } else {
+                            const palette = ['#eab308', '#22c55e', '#d946ef']; // Middle: Yellow, Green, Magenta
+                            color = palette[(i - 1) % palette.length];
+                          }
                           return (
                             <div key={year} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <div style={{ width: 12, height: 12, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}80` }} />

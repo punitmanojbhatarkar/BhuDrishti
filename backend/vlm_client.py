@@ -65,12 +65,18 @@ def _build_prompt(location: str, module: str, context: dict) -> str:
     compare_years = context.get("compare_years", [])
     
     if module == "flood_compare" and compare_years:
-        palette = ['RED', 'YELLOW', 'CYAN', 'GREEN', 'MAGENTA']
         years = sorted(list(set(compare_years)))
         
         legend_items = []
         for i, year in enumerate(years):
-            color = palette[i % len(palette)]
+            if i == 0:
+                color = 'RED'
+            elif i == len(years) - 1 and len(years) > 1:
+                color = 'CYAN'
+            else:
+                palette = ['YELLOW', 'GREEN', 'MAGENTA']
+                color = palette[(i - 1) % len(palette)]
+                
             legend_items.append(f"Flood extent in {year} is shown in {color}")
             
         legend_str = ", ".join(legend_items)
