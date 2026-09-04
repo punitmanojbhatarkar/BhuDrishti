@@ -101,16 +101,24 @@ def calculate_water_area(bbox, geojson=None):
         # Mask out anything that is steep terrain (prevent shadow misclassification)
         water = vv.lt(-14).And(flat_terrain).rename('water')
         
-        # Calculate area using scale=100m (100x faster than 10m for large regions)
-        # bestEffort=True auto-coarsens further if the region is enormous
-        area_image = water.multiply(ee.Image.pixelArea())
+        # ── Step 3: Subtract permanent water bodies (JRC Global Surface Water)
+        # This ensures we show FLOOD EXTENT only, not permanent rivers/lakes
+        # JRC dataset: 1 = permanent water, 0 = not permanent
+        jrc = ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
+        permanent_water = jrc.select('seasonality').gte(10)  # water for >= 10 months/year
+        
+        # Flood = SAR water mask AND NOT permanent water
+        flood_only = water.And(permanent_water.Not()).rename('flood')
+        
+        # Calculate area using scale=100m (fast) with bestEffort
+        area_image = flood_only.multiply(ee.Image.pixelArea())
         water_area_sq_m = area_image.reduceRegion(
             reducer=ee.Reducer.sum(),
             geometry=geometry,
             scale=100,
             maxPixels=1e13,
             bestEffort=True
-        ).get('water').getInfo()
+        ).get('flood').getInfo()
         
         if water_area_sq_m is None:
             return None
@@ -148,11 +156,14 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None) -> str:
             slope = ee.Terrain.slope(dem)
             flat_terrain = slope.lt(5)
             
-            # Water mask (VV < -14 dB) combined with flat terrain
-            water = image.select('VV').lt(-14).And(flat_terrain).selfMask()
+            # ── Subtract permanent water (JRC) to show FLOOD EXTENT only ──
+            jrc = ee.Image('JRC/GSW1_4/GlobalSurfaceWater')
+            permanent_water = jrc.select('seasonality').gte(10)  # >= 10 months/year = permanent
             
-            # Create a visualization mapping
-            map_id = water.getMapId({'min': 1, 'max': 1, 'palette': ['00FFFF']})
+            # Final flood mask: SAR water AND flat terrain AND NOT permanent water
+            flood_mask = image.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
+            
+            map_id = flood_mask.getMapId({'min': 1, 'max': 1, 'palette': ['00FFFF']})
             return map_id['tile_fetcher'].url_format
             
         elif module == "agri" or module == "forest":
