@@ -269,6 +269,11 @@ def get_basemap(layer_type: str = "sar"):
         return {"url": None}
 
 
+@app.get("/health")
+def health_check():
+    """Simple health check endpoint to keep the Render server warm."""
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
+
 @app.post("/api/chat")
 def chat_endpoint(request: QueryRequest):
     """
