@@ -117,7 +117,7 @@ import google.generativeai as genai
 import json
 
 import os
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AQ.Ab8RN6JcJ0JTq3dflUEln92mL8tr1yCNr_hgwbbeX_ZRVhxz6A")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 router_model = genai.GenerativeModel("gemini-3.7-flash")
 

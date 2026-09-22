@@ -9,7 +9,7 @@ import os
 import datetime
 from openai import OpenAI
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AQ.Ab8RN6JcJ0JTq3dflUEln92mL8tr1yCNr_hgwbbeX_ZRVhxz6A")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY")
 NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "YOUR_NVIDIA_API_KEY")
 
 nvidia_client = OpenAI(
