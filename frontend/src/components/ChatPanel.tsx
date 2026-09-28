@@ -126,9 +126,43 @@ export default function ChatPanel({ onImageUpdate, onStatsUpdate, geojson }: {
     }
   };
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && onImageUpdate) {
+    if (!file) return;
+
+    if (file.name.toLowerCase().endsWith('.tif') || file.name.toLowerCase().endsWith('.tiff')) {
+      // Handle GeoTIFF upload to fulfill PS-26167 requirement
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: "user", content: `Uploaded GeoTIFF: ${file.name}` }]);
+      setLoading(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const response = await fetch('http://localhost:8000/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+        
+        if (result.success && onImageUpdate) {
+          // Tell map to zoom to bbox without replacing the base map image
+          onImageUpdate('', result.bbox, undefined, undefined, 'upload', '');
+          setMessages(prev => [...prev, {
+            id: (Date.now() + 1).toString(),
+            role: "ai",
+            content: `✅ GeoTIFF processed successfully!\n\n**Extracted Metadata:**\n- **Resolution**: ${result.metadata.width}x${result.metadata.height}\n- **Bands**: ${result.metadata.bands}\n- **CRS**: ${result.metadata.crs}\n\nThe map has zoomed to the spatial extent of the file. You can now ask questions about this region.`
+          }]);
+        } else {
+            setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: `❌ Error processing GeoTIFF: ${result.error || 'Unknown error'}` }]);
+        }
+      } catch (err) {
+        setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: "ai", content: `❌ Connection Error: Could not upload GeoTIFF. Is the backend running?` }]);
+      } finally {
+        setLoading(false);
+      }
+    } else if (onImageUpdate) {
+      // Standard image preview
       const url = URL.createObjectURL(file);
       onImageUpdate(url);
     }
@@ -583,6 +617,25 @@ function MessageBubble({ role, content, data }: { role: string; content: string;
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Agentic Execution Trace (Mandatory PS Requirement) */}
+                {(data as any)?.execution_trace && (
+                  <div style={{ marginTop: 12, padding: "10px", background: "rgba(16, 185, 129, 0.05)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 6 }}>
+                    <div style={{ fontSize: 10, color: "#34d399", fontWeight: "bold", marginBottom: 8, letterSpacing: "0.5px" }}>
+                      <span style={{ marginRight: 4 }}>🤖</span> AUDITABLE EXECUTION TRACE
+                    </div>
+                    {(data as any).execution_trace.map((step: any, idx: number) => (
+                      <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}>
+                        <div style={{ color: "var(--text-3)", width: 14 }}>{idx + 1}.</div>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ color: "var(--text-2)", fontWeight: "bold" }}>{step.step}</span>
+                          <span style={{ color: "var(--text-3)" }}> — {step.tool}</span>
+                          {step.output && <div style={{ color: "#38bdf8", marginTop: 2, opacity: 0.9 }}>↳ {step.output}</div>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 

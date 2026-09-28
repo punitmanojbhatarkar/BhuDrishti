@@ -7,3 +7,5 @@ python-dotenv
 earthengine-api
 google-generativeai
 openai
+rasterio
+python-multipart
