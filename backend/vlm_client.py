@@ -153,6 +153,7 @@ def analyze_image_with_gemini(
     location: str,
     module: str,
     context: dict,
+    base64_image: str = None,
 ) -> str:
     """
     Sends the REAL satellite image (from STAC thumbnail URL or local fallback)
@@ -164,7 +165,12 @@ def analyze_image_with_gemini(
         image_b64 = None
         mime_type = "image/jpeg"
 
-        if image_url_or_path and image_url_or_path.startswith("http"):
+        if base64_image:
+            # Clean prefix if it exists
+            image_b64 = base64_image.split(",")[-1]
+            if "png" in base64_image: mime_type = "image/png"
+            print(f"Using uploaded local GeoTIFF image ({len(image_b64)} chars) for Cartosat/RISAT requirement!")
+        elif image_url_or_path and image_url_or_path.startswith("http"):
             try:
                 print(f"Downloading STAC thumbnail from: {image_url_or_path}")
                 resp = requests.get(image_url_or_path, timeout=15, stream=True)
@@ -229,10 +235,11 @@ def analyze_image_with_nvidia(
     location: str,
     module: str,
     context: dict,
+    base64_image: str = None,
 ) -> str:
     """Sends satellite image to NVIDIA NVLM, falls back to Gemini if unavailable."""
     if not NVIDIA_API_KEY or NVIDIA_API_KEY == "YOUR_NVIDIA_API_KEY":
-        return analyze_image_with_gemini(image_url_or_path, location, module, context)
+        return analyze_image_with_gemini(image_url_or_path, location, module, context, base64_image)
 
     prompt = _build_prompt(location, module, context)
 
@@ -240,7 +247,10 @@ def analyze_image_with_nvidia(
         image_b64 = None
         mime_type = "image/jpeg"
 
-        if image_url_or_path and image_url_or_path.startswith("http"):
+        if base64_image:
+            image_b64 = base64_image.split(",")[-1]
+            if "png" in base64_image: mime_type = "image/png"
+        elif image_url_or_path and image_url_or_path.startswith("http"):
             try:
                 resp = requests.get(image_url_or_path, timeout=15, stream=True)
                 if resp.status_code == 200:

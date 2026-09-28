@@ -56,6 +56,7 @@ export default function ChatPanel({ onImageUpdate, onStatsUpdate, geojson }: {
   const [aiProvider, setAiProvider] = useState("gemini");
   const [showAiProvider, setShowAiProvider] = useState(false);
   const [scanIdx, setScanIdx]     = useState(0);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLTextAreaElement>(null);
   const fileRef   = useRef<HTMLInputElement>(null);
@@ -86,7 +87,7 @@ export default function ChatPanel({ onImageUpdate, onStatsUpdate, geojson }: {
     setLoading(true);
 
     try {
-      const data = await sendChatMessage({ query, language: lang, geojson, ai_provider: aiProvider });
+      const data = await sendChatMessage({ query, language: lang, geojson, ai_provider: aiProvider, base64_image: uploadedImage || undefined });
 
       // Pass geo data to parent for map overlay
       if (onImageUpdate) {
@@ -146,6 +147,9 @@ export default function ChatPanel({ onImageUpdate, onStatsUpdate, geojson }: {
         const result = await response.json();
         
         if (result.success && onImageUpdate) {
+          if (result.base64_image) {
+             setUploadedImage(result.base64_image);
+          }
           // Tell map to zoom to bbox without replacing the base map image
           onImageUpdate('', result.bbox, undefined, undefined, 'upload', '');
           setMessages(prev => [...prev, {
@@ -168,7 +172,10 @@ export default function ChatPanel({ onImageUpdate, onStatsUpdate, geojson }: {
     }
   }, [onImageUpdate]);
 
-  const clear = () => setMessages([]);
+  const clear = () => {
+      setMessages([]);
+      setUploadedImage(null);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>

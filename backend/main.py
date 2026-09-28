@@ -111,6 +111,7 @@ class QueryRequest(BaseModel):
     language: Optional[str] = None
     geojson: Optional[Dict[str, Any]] = None
     ai_provider: Optional[str] = "gemini"
+    base64_image: Optional[str] = None
 
 
 import google.generativeai as genai
@@ -373,11 +374,11 @@ def chat_endpoint(request: QueryRequest):
     def do_gemini(gee_context: dict):
         if request.ai_provider == "nvidia":
             return analyze_image_with_nvidia(
-                thumbnail_url, location, module, gee_context
+                thumbnail_url, location, module, gee_context, request.base64_image
             )
         else:
             return analyze_image_with_gemini(
-                thumbnail_url, location, module, gee_context
+                thumbnail_url, location, module, gee_context, request.base64_image
             )
 
     # Submit GEE first — wait for it fully before starting Gemini
@@ -479,13 +480,17 @@ def chat_endpoint(request: QueryRequest):
 async def upload_geotiff(file: UploadFile = File(...)):
     """
     PS-26167 Requirement: Accept GeoTIFF inputs for analysis.
-    This extracts metadata (CRS, Bounding Box) from the uploaded TIFF using rasterio.
+    Extracts metadata and generates a Base64 thumbnail for the Agentic VLM to analyze.
     """
     try:
         import rasterio
         from rasterio.warp import transform_bounds
+        import numpy as np
+        from PIL import Image
+        import base64
+        import io
     except ImportError:
-        return {"error": "Rasterio not installed. Please run pip install rasterio tifffile"}
+        return {"error": "Missing dependencies. Please run: pip install rasterio tifffile pillow numpy"}
         
     import tempfile
     import os
@@ -508,11 +513,38 @@ async def upload_geotiff(file: UploadFile = File(...)):
             width = src.width
             height = src.height
             
-            # Convert bounds to EPSG:4326 (WGS84 Lat/Lon) for frontend Leaflet map
+            # Convert bounds to EPSG:4326 for map overlay
             if crs != "EPSG:4326":
                 min_lon, min_lat, max_lon, max_lat = transform_bounds(crs, "EPSG:4326", *bounds)
             else:
                 min_lon, min_lat, max_lon, max_lat = bounds
+                
+            # -- VLM PREPARATION (Cartosat/RISAT Local Analysis) --
+            # Read pixels to generate a compressed Base64 image for Gemini VLM
+            if count >= 3:
+                arr = src.read([1, 2, 3]) # Read first 3 bands
+                arr = np.transpose(arr, (1, 2, 0)) # Convert to (H, W, C)
+            else:
+                arr = src.read(1) # Read single band (SAR or Grayscale)
+                
+            # Normalize and enhance contrast for the AI (2% to 98% stretch)
+            arr = np.nan_to_num(arr)
+            p2, p98 = np.percentile(arr, (2, 98))
+            
+            # Handle edge case where p2 == p98 (flat image)
+            if p98 > p2:
+                arr = np.clip((arr - p2) / (p98 - p2) * 255.0, 0, 255).astype(np.uint8)
+            else:
+                arr = np.clip(arr, 0, 255).astype(np.uint8)
+                
+            img = Image.fromarray(arr)
+            # Resize to max 1024x1024 to save VLM token limits & bandwidth
+            img.thumbnail((1024, 1024))
+            
+            buffered = io.BytesIO()
+            img.save(buffered, format="JPEG")
+            img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            b64_image = f"data:image/jpeg;base64,{img_str}"
                 
             return {
                 "success": True,
@@ -523,7 +555,8 @@ async def upload_geotiff(file: UploadFile = File(...)):
                     "height": height,
                     "crs": str(crs),
                 },
-                "bbox": [min_lon, min_lat, max_lon, max_lat]
+                "bbox": [min_lon, min_lat, max_lon, max_lat],
+                "base64_image": b64_image # Send back to frontend to pass into chat!
             }
     except Exception as e:
         return {"error": f"Failed to parse GeoTIFF: {str(e)}"}

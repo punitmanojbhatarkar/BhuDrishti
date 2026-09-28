@@ -8,6 +8,7 @@ export interface ChatRequest {
   language?: string;
   geojson?: any;
   ai_provider?: string;
+  base64_image?: string;
 }
 
 export interface ChatResponse {
