@@ -220,6 +220,40 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None, compare_years: list 
             map_id = ndvi.getMapId(vis_params)
             return map_id['tile_fetcher'].url_format
 
+        elif module == "fusion":
+            # ── TRUE OPTICAL-SAR FUSION (Mandatory PS Requirement) ──
+            # 1. Optical (Sentinel-2)
+            s2_collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                             .filterBounds(geometry)
+                             .filterDate('2024-01-01', '2026-12-31')
+                             .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                             .sort('system:time_start', False))
+            s2_img = s2_collection.mosaic()
+            
+            # 2. SAR (Sentinel-1)
+            s1_collection = (ee.ImageCollection('COPERNICUS/S1_GRD')
+                             .filterBounds(geometry)
+                             .filterDate('2024-01-01', '2026-12-31')
+                             .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV'))
+                             .filter(ee.Filter.eq('instrumentMode', 'IW'))
+                             .sort('system:time_start', False))
+            s1_img = s1_collection.mosaic()
+            
+            # 3. Co-registration and Fusion (Stacking Tensors)
+            # R = S2 NIR (B8) [Highlights Vegetation]
+            # G = S1 VV (Radar) [Highlights Structures / Urban / Metal]
+            # B = S2 Green (B3) [Highlights Water / Base]
+            fused_img = ee.Image.cat([s2_img.select('B8'), s1_img.select('VV'), s2_img.select('B3')])
+            
+            vis_params = {
+                'bands': ['B8', 'VV', 'B3'],
+                'min': [0, -25, 0],
+                'max': [3000, 0, 2000],
+                'gamma': 1.2
+            }
+            map_id = fused_img.getMapId(vis_params)
+            return map_id['tile_fetcher'].url_format
+
         else:
             # Default True Color (Sentinel-2)
             collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')

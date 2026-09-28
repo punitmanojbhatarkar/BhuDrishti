@@ -127,15 +127,16 @@ router_model = genai.GenerativeModel("gemini-3.7-flash")
 def detect_intent(query: str) -> dict:
     prompt = f"""Extract the intent and location from the user's query.
     The query might be in English, Hindi, Hinglish, and contain severe spelling mistakes.
-    Modules allowed: "flood", "flood_compare", "agri", "urban", "forest", "water", "general".
+    Modules allowed: "flood", "flood_compare", "agri", "urban", "forest", "water", "fusion", "general".
     * If the user asks to "compare" floods or asks about "past", "history", or specific years, output "flood_compare".
+    * If the user asks for "fusion", "optical sar", "composite", or to "merge radar and optical", output "fusion".
     Location: Extract the specific geographical location (state, city, country, or region) mentioned. If none, output "unknown".
     Years: If the user mentions specific years to compare (e.g., 2018, 2021), extract them into a list of integers called "compare_years".
     
     Query: "{query}"
     
     Return ONLY a valid JSON object with keys "module", "location", and "compare_years" (if applicable). Do not include markdown formatting.
-    Example: {{"module": "flood_compare", "location": "assam", "compare_years": [2018, 2021, 2026]}}
+    Example: {{"module": "fusion", "location": "assam"}}
     """
     
     module = "general"
@@ -154,7 +155,9 @@ def detect_intent(query: str) -> dict:
         
     # Fallback keyword logic if not caught by LLM
     q = query.lower()
-    if any(w in q for w in ["flood","inundation","cyclone","disaster","relief","submerged","sar","radar"]):
+    if any(w in q for w in ["fusion", "fuse", "optical and sar", "radar and optical", "merge"]):
+        module = "fusion"
+    elif any(w in q for w in ["flood","inundation","cyclone","disaster","relief","submerged","sar","radar"]):
         if any(w in q for w in ["compare", "past", "history", "year"]):
             module = "flood_compare"
         else:
