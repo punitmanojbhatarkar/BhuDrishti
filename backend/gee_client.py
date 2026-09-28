@@ -158,31 +158,40 @@ def get_gee_map_tile(module: str, bbox: list, geojson=None, compare_years: list 
             permanent_water = jrc.select('seasonality').gte(10)  # >= 10 months/year = permanent
             
             if module == "flood_compare" and compare_years:
-                # Dynamic N-Timeline Comparison
+                # TRUE BINARY CHANGE MASK (Mandatory PS Requirement)
                 years = sorted(list(set(compare_years))) # Ensure unique and chronological
                 
-                rgb_layers = []
-                for i, year in enumerate(years):
-                    if i == 0:
-                        color = 'FF0000' # Oldest: Red
-                    elif i == len(years) - 1 and len(years) > 1:
-                        color = '00FFFF' # Newest: Cyan
-                    else:
-                        palette = ['FFFF00', '00FF00', 'FF00FF'] # Middle: Yellow, Green, Magenta
-                        color = palette[(i - 1) % len(palette)]
-
-                    start_date = f"{year}-01-01"
-                    end_date = f"{year}-12-31"
+                if len(years) >= 2:
+                    # Take the oldest and newest years for the change mask
+                    year_old = years[0]
+                    year_new = years[-1]
                     
-                    year_img = collection.filterDate(start_date, end_date).sort('system:time_start', False).mosaic()
-                    year_flood = year_img.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
+                    old_img = collection.filterDate(f"{year_old}-01-01", f"{year_old}-12-31").sort('system:time_start', False).mosaic()
+                    old_flood = old_img.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not())
                     
-                    year_rgb = year_flood.visualize(min=1, max=1, palette=[color])
-                    rgb_layers.append(year_rgb)
-                
-                combined = ee.ImageCollection(rgb_layers).mosaic()
-                map_id = combined.getMapId()
-                return map_id['tile_fetcher'].url_format
+                    new_img = collection.filterDate(f"{year_new}-01-01", f"{year_new}-12-31").sort('system:time_start', False).mosaic()
+                    new_flood = new_img.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not())
+                    
+                    # Subtract: +1 (New Flood), -1 (Receded Flood), 0 (No Change)
+                    change = new_flood.subtract(old_flood)
+                    
+                    # Mask out the zeros so only actual changes are rendered
+                    change_masked = change.updateMask(change.neq(0))
+                    
+                    # Palette: -1 (Receded) = Blue, +1 (New Flood) = Red
+                    map_id = change_masked.getMapId({
+                        'min': -1, 
+                        'max': 1, 
+                        'palette': ['0000FF', '000000', 'FF0000'] 
+                    })
+                    return map_id['tile_fetcher'].url_format
+                else:
+                    # Fallback if only 1 year was provided
+                    year = years[0]
+                    year_img = collection.filterDate(f"{year}-01-01", f"{year}-12-31").sort('system:time_start', False).mosaic()
+                    flood_mask = year_img.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()
+                    map_id = flood_mask.getMapId({'min': 1, 'max': 1, 'palette': ['00FFFF']})
+                    return map_id['tile_fetcher'].url_format
             else:
                 image = collection.filterDate('2020-01-01', '2026-12-31').sort('system:time_start', False).mosaic()
                 flood_mask = image.select('VV').lt(-14).And(flat_terrain).And(permanent_water.Not()).selfMask()

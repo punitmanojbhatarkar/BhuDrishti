@@ -66,26 +66,19 @@ def _build_prompt(location: str, module: str, context: dict) -> str:
     
     if module == "flood_compare" and compare_years:
         years = sorted(list(set(compare_years)))
-        
-        legend_items = []
-        for i, year in enumerate(years):
-            if i == 0:
-                color = 'RED'
-            elif i == len(years) - 1 and len(years) > 1:
-                color = 'CYAN'
-            else:
-                palette = ['YELLOW', 'GREEN', 'MAGENTA']
-                color = palette[(i - 1) % len(palette)]
-                
-            legend_items.append(f"Flood extent in {year} is shown in {color}")
-            
-        legend_str = ", ".join(legend_items)
-        gee_section = (
-            f"\n**VERIFIED TEMPORAL GEE GROUND TRUTH (Mathematically Proven):**\n"
-            f"- Analysis: Temporal comparison of flood extent for years: {years}\n"
-            f"- Method: Sentinel-1 VV < -14 dB + SRTM DEM slope masking\n"
-            f"- **CRITICAL INSTRUCTION FOR MAP LEGEND:** The map visually overlays these timelines. You MUST output exactly this as your map legend: '{legend_str}'. Do NOT invent a generic legend.\n"
-        )
+        if len(years) >= 2:
+            gee_section = (
+                f"\n**VERIFIED TEMPORAL GEE GROUND TRUTH (Binary Change Mask):**\n"
+                f"- Analysis: Temporal comparison of flood extent between {years[0]} and {years[-1]}\n"
+                f"- Method: Sentinel-1 VV < -14 dB + SRTM DEM slope masking, mathematically subtracted.\n"
+                f"- **CRITICAL INSTRUCTION FOR MAP LEGEND:** The map visually overlays the mathematical difference between these years. You MUST output exactly this as your map legend: 'The **Red overlay** indicates newly flooded areas in {years[-1]} compared to {years[0]}. The **Blue overlay** indicates areas where flood water receded since {years[0]}.'\n"
+            )
+        else:
+            gee_section = (
+                f"\n**VERIFIED TEMPORAL GEE GROUND TRUTH:**\n"
+                f"- Analysis: Flood extent for year {years[0]}\n"
+                f"- **CRITICAL INSTRUCTION FOR MAP LEGEND:** 'The **Cyan overlay** represents flood extent in {years[0]}.'\n"
+            )
     elif module in ["flood", "water"] and area_km2 not in ["N/A", None, "None"]:
         gee_section = (
             f"\n**VERIFIED GEE GROUND TRUTH (Mathematically Proven — NOT estimated):**\n"
