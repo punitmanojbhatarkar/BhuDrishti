@@ -34,6 +34,7 @@ export default function MapPanel({ imageUrl, geeTileUrl, bbox, centerLat, center
   const weatherLayerRef = useRef<any>(null);
   const drawEntityRef = useRef<any>(null);
   const drawHandlerRef = useRef<any>(null);
+  const groundingEntitiesRef = useRef<any[]>([]);
 
   const [activeLayer, setActiveLayer] = useState<LayerMode>("satellite");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -226,6 +227,48 @@ export default function MapPanel({ imageUrl, geeTileUrl, bbox, centerLat, center
     overlayRef.current = viewer.scene.imageryLayers.addImageryProvider(provider);
     overlayRef.current.alpha = overlayVisible ? 0.85 : 0.0;
   }, [geeTileUrl, cesiumReady, overlayVisible]);
+
+  // Effect to draw grounding boxes from the AI
+  useEffect(() => {
+    if (!viewerRef.current || !cesiumReady) return;
+    const Cesium = (window as any).Cesium;
+    const viewer = viewerRef.current;
+
+    // Clear old boxes
+    groundingEntitiesRef.current.forEach(entity => viewer.entities.remove(entity));
+    groundingEntitiesRef.current = [];
+
+    if (stats?.groundingBoxes && stats.groundingBoxes.length > 0) {
+      stats.groundingBoxes.forEach((box: any) => {
+        // box.points is an array of [lon, lat] pairs
+        const flatCoords = box.points.flatMap((pt: number[]) => [pt[0], pt[1]]);
+        
+        const entity = viewer.entities.add({
+          name: box.label,
+          polygon: {
+            hierarchy: Cesium.Cartesian3.fromDegreesArray(flatCoords),
+            material: Cesium.Color.RED.withAlpha(0.2),
+            outline: true,
+            outlineColor: Cesium.Color.RED,
+            outlineWidth: 3
+          },
+          position: Cesium.Cartesian3.fromDegrees(box.points[0][0], box.points[0][1]),
+          label: {
+            text: box.label,
+            font: '12pt monospace',
+            fillColor: Cesium.Color.WHITE,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new Cesium.Cartesian2(0, -10)
+          }
+        });
+        
+        groundingEntitiesRef.current.push(entity);
+      });
+    }
+  }, [stats?.groundingBoxes, cesiumReady]);
 
   const toggleOverlay = useCallback(() => {
     if (overlayRef.current) {

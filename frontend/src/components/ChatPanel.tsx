@@ -108,6 +108,7 @@ export default function ChatPanel({ onImageUpdate, onStatsUpdate, geojson }: {
           area:   data.area_km2 != null ? (typeof data.area_km2 === 'number' ? data.area_km2 : parseFloat(data.area_km2 as string) || undefined) : undefined,
           sensor: data.sensor,
           module: data.module,
+          groundingBoxes: data.grounding_boxes,
         });
       }
 

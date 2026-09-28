@@ -12,6 +12,7 @@ interface SatStats {
   area?: number;
   sensor?: string;
   module?: string;
+  groundingBoxes?: any[];
 }
 
 interface SatData {

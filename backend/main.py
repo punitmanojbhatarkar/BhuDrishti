@@ -429,6 +429,44 @@ def chat_endpoint(request: QueryRequest):
             + (f"NDVI: {ndvi_score}." if ndvi_score else "")
         )
 
+    # ── PARSE GROUNDING JSON BLOCK ──
+    import re
+    grounding_boxes = []
+    match = re.search(r'```json\n(.*?)\n```', gemini_report, re.DOTALL)
+    if match:
+        try:
+            json_str = match.group(1)
+            grounding_data = json.loads(json_str)
+            if "grounding_boxes" in grounding_data:
+                W, S, E, N = scene_bbox
+                for box in grounding_data["grounding_boxes"]:
+                    # VLM gives 0-1000 scale. [0,0] is Top-Left (North-West)
+                    rel_ymin = box.get("ymin", 0) / 1000.0
+                    rel_xmin = box.get("xmin", 0) / 1000.0
+                    rel_ymax = box.get("ymax", 0) / 1000.0
+                    rel_xmax = box.get("xmax", 0) / 1000.0
+                    
+                    real_n = N - (rel_ymin * (N - S))
+                    real_s = N - (rel_ymax * (N - S))
+                    real_w = W + (rel_xmin * (E - W))
+                    real_e = W + (rel_xmax * (E - W))
+                    
+                    # Store as GeoJSON-style Polygon coordinate array
+                    grounding_boxes.append({
+                        "label": box.get("label", "Detected Feature"),
+                        "points": [
+                            [real_w, real_n], # NW (lon, lat)
+                            [real_e, real_n], # NE
+                            [real_e, real_s], # SE
+                            [real_w, real_s], # SW
+                            [real_w, real_n]  # Close loop
+                        ]
+                    })
+            # Remove JSON from the final report sent to the user
+            gemini_report = gemini_report.replace(match.group(0), "").strip()
+        except Exception as e:
+            print(f"Error parsing grounding JSON: {e}")
+
     # Translate if requested
     if request.language and request.language.lower() not in ["en", "english"]:
         gemini_report = translate_text(gemini_report, request.language)
@@ -464,6 +502,7 @@ def chat_endpoint(request: QueryRequest):
         "historical_range":        verification.get("historical_range", "N/A"),
         "date_range":              f"{date_from} to {date_to}",
         "compare_years":           compare_years,
+        "grounding_boxes":         grounding_boxes,
         
         # ── SATQUERY AI AGENTIC TRACE ──
         "execution_trace": [

@@ -126,17 +126,24 @@ State the exact GEE-verified numbers. If flood/water area is provided, say: "SAR
 Provide exactly 3 specific, actionable steps for government officials.
 
 ### 5. 🗺️ Map Legend
-Explain the visual overlay precisely:
-- Flood/Water: "The **cyan overlay** represents pixels where Sentinel-1 SAR VV backscatter < -14 dB on flat terrain, indicating active flood water or permanent water bodies. Mountain slopes (> 5°) are masked out using SRTM DEM to prevent false positives."
-- Agri/Forest: "The **green overlay** shows the NDVI vegetation index — darker green = denser, healthier vegetation."
-- Urban: "The overlay shows the built-up surface index from Sentinel-2."
+Explain the visual overlay precisely.
+
+### 6. 🎯 Spatial Grounding (JSON ONLY)
+You MUST output a JSON block identifying exactly where the critical features are located in the image. Use relative coordinates (0 to 1000) where [0,0] is top-left and [1000,1000] is bottom-right. Output EXACTLY this format and nothing else in this section:
+```json
+{
+  "grounding_boxes": [
+    {"label": "Primary Flooded Region", "ymin": 200, "xmin": 150, "ymax": 600, "xmax": 850}
+  ]
+}
+```
 
 **CRITICAL RULES:**
 - Sound like a senior ISRO/NDMA satellite analyst writing a classified intelligence brief.
 - NEVER say you are an AI or language model.
 - ALWAYS cite the exact GEE numbers if provided above.
 - Use Markdown formatting (bold, bullet points, headers).
-- Be specific, technical, and authoritative. This will be presented to government decision-makers.
+- Be specific, technical, and authoritative.
 """
     return prompt
 
