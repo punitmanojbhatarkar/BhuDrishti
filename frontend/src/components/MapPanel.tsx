@@ -44,6 +44,9 @@ export default function MapPanel({ imageUrl, geeTileUrl, bbox, centerLat, center
   const [showWeather, setShowWeather] = useState(false);
   const [cesiumReady, setCesiumReady] = useState(false);
   const [drawnPoints, setDrawnPoints] = useState<any[]>([]);
+  const [topLayer, setTopLayer] = useState<string>("TC");
+
+  const SENTINEL_HUB_ID = "0597d87a-127b-4d33-93a1-054b58aa7814";
 
   useEffect(() => {
     const checkCesium = setInterval(() => {
@@ -153,7 +156,8 @@ export default function MapPanel({ imageUrl, geeTileUrl, bbox, centerLat, center
         maximumLevel: 18
       }));
     } else {
-      fetch(`http://localhost:8000/api/basemap?layer_type=${activeLayer}`)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      fetch(`${apiUrl}/api/basemap?layer_type=${activeLayer}`)
         .then(res => res.json())
         .then(data => {
           if (data.url) {
@@ -166,6 +170,39 @@ export default function MapPanel({ imageUrl, geeTileUrl, bbox, centerLat, center
         .catch(console.error);
     }
   }, [activeLayer, cesiumReady]);
+
+  // Effect to manage Sentinel Hub WMS Layers from Top Tabs
+  useEffect(() => {
+    if (!viewerRef.current || !cesiumReady) return;
+    const Cesium = (window as any).Cesium;
+    const viewer = viewerRef.current;
+
+    // We store the reference in a custom property on viewerRef to easily clear it
+    if (viewerRef.current.sentinelLayer) {
+      viewer.scene.imageryLayers.remove(viewerRef.current.sentinelLayer);
+      viewerRef.current.sentinelLayer = null;
+    }
+
+    let shLayer = "";
+    if (topLayer === "TC") shLayer = "1_TRUE_COLOR";
+    else if (topLayer === "FC") shLayer = "2_FALSE_COLOR";
+    else if (topLayer === "NDVI") shLayer = "3_NDVI";
+    else if (topLayer === "URB") shLayer = "4_FALSE_COLOR_URBAN";
+    else if (topLayer === "SAR") shLayer = "5_MOISTURE_INDEX"; // Fallback Moisture for SAR
+
+    if (shLayer) {
+      const wmsProvider = new Cesium.WebMapServiceImageryProvider({
+        url: `https://services.sentinel-hub.com/ogc/wms/${SENTINEL_HUB_ID}`,
+        layers: shLayer,
+        parameters: {
+          transparent: 'true',
+          format: 'image/png'
+        }
+      });
+      viewerRef.current.sentinelLayer = viewer.scene.imageryLayers.addImageryProvider(wmsProvider);
+      viewerRef.current.sentinelLayer.alpha = 0.85;
+    }
+  }, [topLayer, cesiumReady]);
 
   useEffect(() => {
     if (!viewerRef.current || !cesiumReady) return;
@@ -269,6 +306,47 @@ export default function MapPanel({ imageUrl, geeTileUrl, bbox, centerLat, center
       });
     }
   }, [stats?.groundingBoxes, cesiumReady]);
+
+  // Effect to load Field Images and Frustums from Backend
+  useEffect(() => {
+    if (!viewerRef.current || !cesiumReady) return;
+    const Cesium = (window as any).Cesium;
+    const viewer = viewerRef.current;
+    
+    let dataSource: any = null;
+    
+    const loadImages = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const response = await fetch(`${apiUrl}/api/v1/images`);
+        if (!response.ok) return;
+        const data = await response.json();
+        
+        if (dataSource) {
+          viewer.dataSources.remove(dataSource);
+        }
+        
+        Cesium.GeoJsonDataSource.load(data, {
+          stroke: Cesium.Color.fromCssColorString("#fbbf24"),
+          fill: Cesium.Color.fromCssColorString("#fbbf24").withAlpha(0.2),
+          strokeWidth: 3,
+          markerSymbol: 'camera'
+        }).then((ds: any) => {
+          dataSource = ds;
+          viewer.dataSources.add(ds);
+        });
+      } catch (err) {
+        console.error("Failed to fetch field images", err);
+      }
+    };
+    
+    loadImages();
+    const interval = setInterval(loadImages, 10000);
+    return () => {
+      clearInterval(interval);
+      if (dataSource) viewer.dataSources.remove(dataSource);
+    };
+  }, [cesiumReady]);
 
   const toggleOverlay = useCallback(() => {
     if (overlayRef.current) {
@@ -418,10 +496,14 @@ export default function MapPanel({ imageUrl, geeTileUrl, bbox, centerLat, center
             { label: "True Color", key: "TC" },
             { label: "False Color", key: "FC" },
             { label: "NDVI", key: "NDVI" },
-            { label: "SAR VV", key: "SAR" },
+            { label: "Moisture", key: "SAR" },
             { label: "Urban", key: "URB" },
           ].map((tab) => (
-            <button key={tab.key} className={`asset-tab ${tab.key === (module === "flood" ? "SAR" : module === "agri" ? "NDVI" : "TC") ? "active" : ""}`}>
+            <button 
+              key={tab.key} 
+              onClick={() => setTopLayer(tab.key)}
+              className={`asset-tab ${tab.key === topLayer ? "active" : ""}`}
+            >
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--text-3)" }} />
               {tab.label}
             </button>

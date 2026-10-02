@@ -1,8 +1,10 @@
 "use client";
 import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Satellite, Globe2, ChevronRight, ChevronLeft, Layers2, Database, Cpu, Sun, Moon, Waves, Wheat, Building2, Trees, Droplets } from "lucide-react";
+import { Satellite, Globe2, ChevronRight, ChevronLeft, Layers2, Database, Cpu, Sun, Moon, Waves, Wheat, Building2, Trees, Droplets, Trophy, Camera } from "lucide-react";
 import ChatPanel from "@/components/ChatPanel";
+import DistrictLeaderboard from "@/components/DistrictLeaderboard";
+import ARCamera from "@/components/ARCamera";
 
 const MapPanel = dynamic(() => import("@/components/MapPanel"), { ssr: false });
 
@@ -54,6 +56,8 @@ export default function HomePage() {
   const [stats, setStats]       = useState<SatStats>({});
   const [chatOpen, setChatOpen] = useState(true);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [geojson, setGeojson] = useState<any>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -161,6 +165,26 @@ export default function HomePage() {
             <Database size={13} />
           </button>
 
+          {/* Gamification toggle */}
+          <button
+            className="btn-icon hide-on-mobile"
+            style={{ width: 28, height: 28, fontSize: 10, color: leaderboardOpen ? "var(--accent)" : "inherit" }}
+            onClick={() => setLeaderboardOpen(!leaderboardOpen)}
+            title="District Leaderboard & Gamification"
+          >
+            <Trophy size={13} />
+          </button>
+
+          {/* AR Camera toggle */}
+          <button
+            className="btn-icon"
+            style={{ width: 28, height: 28, fontSize: 10, color: cameraOpen ? "var(--accent-green)" : "inherit" }}
+            onClick={() => setCameraOpen(!cameraOpen)}
+            title="AR Field Camera"
+          >
+            <Camera size={13} />
+          </button>
+
           {/* Chat toggle */}
           <button
             className="btn-primary"
@@ -188,6 +212,22 @@ export default function HomePage() {
           stats={stats}
           onDrawComplete={handleDrawComplete}
         />
+
+        {/* ── District Leaderboard (floating left) ── */}
+        {leaderboardOpen && (
+          <DistrictLeaderboard onClose={() => setLeaderboardOpen(false)} />
+        )}
+
+        {/* ── AR Field Camera (Full Screen Overlay) ── */}
+        {cameraOpen && (
+          <ARCamera 
+            onClose={() => setCameraOpen(false)} 
+            onCapture={() => {
+              setCameraOpen(false);
+              alert("Photo Captured with AR Metadata! Uploading...");
+            }} 
+          />
+        )}
 
         {/* ── Floating Chat Panel (right side) ── */}
         {chatOpen && (
